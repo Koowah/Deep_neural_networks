@@ -1,9 +1,11 @@
+import pickle
+
 import matplotlib.pyplot as plt # for plotting
 import numpy as np # to format images as arrays
 import scipy.io # to convert .mat file into dictionary
 
 
-# Useful function to get images formatted properly into array
+# Helper function to get images formatted properly into array
 def lire_alpha_digit(all_images, classes:list):
     data = []
     for cls in classes:
@@ -105,7 +107,7 @@ class RBM:
         Vp, Vs = self.backward(Hp)
         return Vp, Vs
     
-    def train_model(self, train_data, n_epoch=100, learning=0.01): # train_rbm
+    def train_rbm(self, train_data, n_epoch=100, learning=0.01): # train_rbm
         for _ in range(n_epoch):
             MSE = []
             data = train_data.copy()
@@ -125,6 +127,18 @@ class RBM:
                 _, v = self.reconstruct(v)
             images.append(v)
         return images
+    
+    def save_model(self, name):
+        dic = {'n_v':self.n_v, 'n_h':self.n_h, 'W':self.W, 'b':self.b, 'c':self.c}
+        with open(f'{name}.txt', 'wb') as f:
+            pickle.dump(dic, f)
+    
+    @classmethod
+    def load_model(cls, path:str):
+        with open(path, 'rb') as tbon:
+            dic = pickle.load(tbon)
+        return cls(n_v=dic['n_v'], n_h=dic['n_h'], W=dic['W'], b=dic['b'], c=dic['c'])
+
     
     
 ############################################################################
@@ -168,7 +182,7 @@ def main():
     # labels_array = np.array(labels_array)
     # train_data = list(zip(data, labels_array[:39*3]))
 
-    rbm.train_model(data, n_epoch=150) # training our model with 300 iterations of gradien descent
+    rbm.train_rbm(data, n_epoch=150) # training our model with 300 iterations of gradien descent
 
     plt.imshow(data[39*2].reshape(20,16), cmap='Greys_r') # data example
     plt.show()

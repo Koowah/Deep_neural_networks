@@ -1,3 +1,4 @@
+import pickle
 import requests # for alpha-binary digits
 
 import torch
@@ -52,6 +53,10 @@ print("mat['classlabels'] elements : ", mat['classlabels'][0])
 
 labels = np.array([label.item() for label in mat['classlabels'][0]])
 images = mat['dat']
+alpha_binary_processed = {'images':images, 'labels':labels}
+
+with open('./data/processed/alpha_binary_processed', 'wb') as f:
+    pickle.dump(alpha_binary_processed, f)
 
 plt.imshow(images[3][0], cmap='Greys_r')
 plt.show()

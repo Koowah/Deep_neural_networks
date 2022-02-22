@@ -159,7 +159,11 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
 ############################################################################
   
 def main(pretrain=False, load=False, train=True):
+    ############################### WARNING ###############################
     np.random.seed(42) # set random seed for reproducibility
+    
+    # Better to pretrain without setting random seed then train, as contrastive divergence
+    # relays on gibbs sampling and therefore on unpredictability of sampling
     
     ############################### Prepare DATA ###############################
     # Convert from .mat to usable arrays and plot

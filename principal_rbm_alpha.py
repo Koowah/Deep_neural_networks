@@ -31,8 +31,8 @@ class RBM:
         shape = (n_h, n_v)
         
         self.W = W if W is not None else np.random.uniform(-1, 1, size=shape)
-        self.b = b if b is not None else np.zeros(n_v)
-        self.c = c if c is not None else np.zeros(n_h)
+        self.b = b if b is not None else np.zeros(n_v).reshape(-1,1)
+        self.c = c if c is not None else np.zeros(n_h).reshape(-1,1)
 
         assert self.W.shape==shape and n_v == len(self.b) and n_h == len(self.c)
         
@@ -42,7 +42,7 @@ class RBM:
     def forward(self, V): # entree_sortie
         n_sample, n_v = V.shape
         
-        hsignal = np.dot(V, self.W.T) + self.c
+        hsignal = np.dot(V, self.W.T) + self.c.T
         assert hsignal.shape == (n_sample, self.n_h)
         Hp = sigmoid(hsignal)
         
@@ -54,7 +54,7 @@ class RBM:
     def backward(self, H): # sortie_entree
         n_sample, n_h = H.shape
         
-        vsignal = np.dot(H, self.W) + self.b
+        vsignal = np.dot(H, self.W) + self.b.T
         assert vsignal.shape == (n_sample, self.n_v)
         #print(vsignal)
         Vp = sigmoid(vsignal)
@@ -90,10 +90,10 @@ class RBM:
         
         Eh_c = Hp1; Evh_c = Hp2 
 
-        g_b = Evh_b - Eh_b  # gradient of -logP(v) wrt b
-        g_c = Evh_c - Eh_c
+        g_b = (Evh_b - Eh_b).reshape(-1,1)  # gradient of -logP(v) wrt b
+        g_c = (Evh_c - Eh_c).reshape(-1,1)
 
-        Eh_W = np.outer(Eh_c, Eh_b) 
+        Eh_W = np.outer(Eh_c, Eh_b)
         Evh_W = np.outer(Evh_c, Evh_b)
         g_W = Evh_W - Eh_W
     

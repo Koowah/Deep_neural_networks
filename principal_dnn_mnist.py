@@ -44,16 +44,12 @@ def cross_entropy(y, y_pred, derivate=False):
 #####################################################################
 
 class DNN(DBN): # we consider a deep neural network as a deep belief network with one last layer to which we apply softmax - allows us to pretrain !
-    def __init__(self, n_v=None, layers=None, k=1, dbn_load=None, dnn_load=None):
-        super().__init__(n_v, layers, k, dic_load=dbn_load)
-        
+    def __init__(self, n_v=None, layers=None, k=1, dic_load=None):
+        super().__init__(n_v, layers, k, dic_load)
         # we copy our DBN structure
         self.weights = [rbm.W for rbm in self.rbms]
         self.biases = [rbm.c for rbm in self.rbms]
-        
-        # Unclean way of being able to load DNN or DBN structures separately as we changed DNN structure
-        # to mainly weights and biases to remain consistent with literature
-            
+                    
     def forward(self, X):
         return super().forward(X)
     
@@ -151,10 +147,10 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
     
     @classmethod
     def load_model(cls, path:str, dnn=False):
-        if dnn:
-            pass
-        else:
-            return super().load_model(path)
+        # if dnn:
+            # pass
+        # else:
+        return super().load_model(path)
 
     
     
@@ -163,7 +159,8 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
 ############################################################################
   
 def main(pretrain=False, load=False, train=True):
-    np.random.seed(42)
+    np.random.seed(42) # set random seed for reproducibility
+    
     ############################### Prepare DATA ###############################
     # Convert from .mat to usable arrays and plot
     file_mat = './data/raw/alpha_binary.mat'
@@ -216,7 +213,14 @@ def main(pretrain=False, load=False, train=True):
     if pretrain:
         # pretrain or load pretrained dbn
         if load:
-            dnn = DNN.load_model('./models/DBN_3_150.txt')
+            dnn = DNN.load_model('./models/DBN_3_150.txt') # load our trained DBN
+            
+            # add last layer to make DNN
+            dnn.weights = [rbm.W for rbm in dnn.rbms]
+            dnn.weights.append(np.random.normal(0, .1, size=(output, dnn.n_hs[dnn.n_layer])))
+            dnn.biases = [rbm.c for rbm in dnn.rbms]
+            dnn.biases.append(np.zeros(output).reshape(-1,1))
+            dnn.n_layer += 1
         else:
             layers = [
                 (h_1, None),
@@ -224,13 +228,15 @@ def main(pretrain=False, load=False, train=True):
                 (h_3, None),
                 # (output, None),
             ]
-            dnn = DNN(n_v, layers)
-            dnn.pretrain_model(data, epochs=150, save=True)
+            dnn = DNN(n_v, layers) # initialize DBN
+            dnn.pretrain_model(data, epochs=150, save=True) # train DBN greedily
             
-            # add last layer
-            dnn.n_layer += 1
+            # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
-            dnn.biases = [rbm.c for rbm in dnn.rbms] 
+            dnn.weights.append(np.random.normal(0, .1, size=(output, dnn.n_hs[dnn.n_layer - 1])))
+            dnn.biases = [rbm.c for rbm in dnn.rbms]
+            dnn.biases.append(np.zeros(output).reshape(-1,1))
+            dnn.n_layer += 1
         
     else:
         if load:

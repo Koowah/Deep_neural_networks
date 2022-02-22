@@ -30,7 +30,7 @@ class RBM:
         self.n_h = n_h
         shape = (n_h, n_v)
         
-        self.W = W if W is not None else np.random.uniform(-1, 1, size=shape)
+        self.W = W if W is not None else np.random.normal(0, .1, size=shape)
         self.b = b if b is not None else np.zeros(n_v).reshape(-1,1)
         self.c = c if c is not None else np.zeros(n_h).reshape(-1,1)
 

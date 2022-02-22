@@ -108,9 +108,9 @@ class RBM:
         return Vp, Vs
     
     def train_rbm(self, train_data, n_epoch=100, learning=0.01): # train_rbm
+        data = train_data.copy()
         for _ in range(n_epoch):
             MSE = []
-            data = train_data.copy()
             np.random.shuffle(data)
             for x in data:
                 self.contrastive_divergence(x.T, learning)

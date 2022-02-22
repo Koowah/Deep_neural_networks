@@ -152,14 +152,14 @@ def main(train=True):
     h_1 = 20*10 # hidden layer 1
     h_2 = 20*10  # hidden layer 2
     h_3 = 20*8
-    output = 10
+    # output = 10
 
     if train:
         layers = [
             (h_1, None),
             (h_2, None),
             (h_3, None),
-            (output, None),
+            # (output, None),
         ]
         dbn = DBN(n_v, layers) # instanciate dbn with above structure
     
@@ -172,7 +172,7 @@ def main(train=True):
         #     (h_2, RBM.load_model('./models/rbm_150_1.txt')),
         #     (h_3, RBM.load_model('./models/rbm_150_2.txt')),
         # ]
-        dbn = DBN.load_model(path='./models/DNN_pretrained_4_150.txt')
+        dbn = DBN.load_model(path='./models/DBN_3_150.txt')
 
     data = lire_alpha_digit(images, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) # retrieve all numerical classes
     

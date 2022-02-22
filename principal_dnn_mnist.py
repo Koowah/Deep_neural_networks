@@ -226,7 +226,7 @@ def main(pretrain=False, load=False, train=True):
                 (h_1, None),
                 (h_2, None),
                 (h_3, None),
-                # (output, None),
+                # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
             dnn.pretrain_model(data, epochs=150, save=True) # train DBN greedily

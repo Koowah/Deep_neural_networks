@@ -142,10 +142,10 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in batch:
-            t0 = time.time()
+            # t0 = time.time()
             delta_nabla_b, delta_nabla_w = self.backpropagate(x, y)
-            t1 = time.time()
-            print('backpropagate for one input time : ', t1 - t0)
+            # t1 = time.time()
+            # print('backpropagate for one input time : ', t1 - t0)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
         self.weights = [w-(eta)*nw 
@@ -159,16 +159,16 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
         data = list(zip(X, y))
         
         for epoch in range(epochs):
-            t0 = time.time()
+            # t0 = time.time()
             np.random.shuffle(data)
             batches = [data[i * batch_size : min((i+1)*batch_size, X.shape[0]-1)] for i in range(num_batches)]
-            t1 = time.time()
-            print('shuffle + make batches time : ', t1 - t0)
+            # t1 = time.time()
+            # print('shuffle + make batches time : ', t1 - t0)
             for batch in batches:
-                t2 = time.time()
+                # t2 = time.time()
                 self.update_batch(batch, learning_rate)
-                t3 = time.time()
-                print('update_batch time : ', t3 - t2)
+                # t3 = time.time()
+                # print('update_batch time : ', t3 - t2)
             if epoch % 10 == 0:
                 y_pred = np.array(list(map(calcul_softmax, self.forward_DNN(X).T)))
                 labels = np.array(list(map(np.argmax,y)))
@@ -212,8 +212,9 @@ def main(pretrain=False, load=False, train=True):
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.5,), (0.5,))])
     # Download and load the training data
-    trainset = datasets.MNIST('./data/processed', download=False, train=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset)) # can specify batch_size and shuffle=True but will be done manually for the sake of the exercise
+    if train:
+        trainset = datasets.MNIST('./data/processed', download=False, train=True, transform=transform)
+        trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset)) # can specify batch_size and shuffle=True but will be done manually for the sake of the exercise
     # Download and load the test data
     testset = datasets.MNIST('./data/processed', download=False, train=False, transform=transform)
     testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset)) # same remark
@@ -223,13 +224,14 @@ def main(pretrain=False, load=False, train=True):
     # Format images as numpy ndarray of shape (n_sample, 1, 28, 28) 
     # and labels as array of shape (n_sample)
     # n_sample = 60 000 for train 10 000 for test
-    # train_data = next(iter(trainloader))[0].numpy().reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
-    # train_labels = next(iter(trainloader))[1].numpy().reshape(-1,1)
-    # one_hot_train_labels = one_hot(train_labels)
-    
+    if train:
+        train_data = next(iter(trainloader))[0].numpy().reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+        train_labels = next(iter(trainloader))[1].numpy().reshape(-1,1)
+        one_hot_train_labels = one_hot(train_labels)
+        
     test_data = next(iter(testloader))[0].numpy().reshape(10_000, -1, 1)
     test_labels = next(iter(testloader))[1].numpy().reshape(-1,1)
-    one_hot_test_labels = one_hot(test_labels)
+    # one_hot_test_labels = one_hot(test_labels)
     #######################################################
     #######################################################
     t1 = time.time()
@@ -239,10 +241,9 @@ def main(pretrain=False, load=False, train=True):
 
     
     ###############################  Pretrain DNN  ###############################
-    n_v = 28*28
-    h_1 = 20*20
-    h_2 = 20*20
-    h_3 = 20*14
+    n_v = 784
+    h_1 = 128
+    h_2 = 64
     output = 10
     
     if pretrain:
@@ -260,7 +261,7 @@ def main(pretrain=False, load=False, train=True):
             layers = [
                 (h_1, None),
                 (h_2, None),
-                (h_3, None),
+                # (h_3, None),
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
@@ -282,28 +283,36 @@ def main(pretrain=False, load=False, train=True):
             layers = [
                 (h_1, None),
                 (h_2, None),
-                (h_3, None),
+                # (h_3, None),
                 (output, None),
             ]
             dnn = DNN(n_v, layers)
         
-    X = test_data.squeeze()
-    y = test_labels
-    t2 = time.time()
-    # Here train-test split
     
     ###############################  Train DNN  ###############################
     if train:
-        dnn.train_model(X, y, batch_size=100, epochs=200, learning_rate=.1)
-        dnn.save_model('./models/dnn_trained_mnist.txt', dnn=True)
+        X_train = train_data.squeeze()
+        y_train = one_hot_train_labels
+        
+        dnn.train_model(X_train, y_train, batch_size=64, epochs=200, learning_rate=.01)
+        dnn.save_model('./models/dnn_trained_mnist', dnn=True)
         
     ###############################  Test DNN  ###############################
     else:
         # Utilize test set to assess accuracy
-        pass
+        X_test = test_data.squeeze()
+        y_test = test_labels
+        
+        # predict labels
+        y_pred = np.array(list(map(calcul_softmax, dnn.forward_DNN(X_test).T)))
+        pred_labels = np.array(list(map(np.argmax, y_pred))).reshape(-1,1)
+        
+        # accuracy
+        accuracy = (y_test == pred_labels).mean()
+        print(f'Accuracy on test set : {accuracy:.2%}')
     
 
 if __name__ == '__main__':
-    main(pretrain=False)
+    main(pretrain=False, load=True, train=False)
     
     # def numpy uniform permutation/sklearn -> train test split to data and labels_array -> check distribution -> def accuracy -> make plots -> apply to MNIST -> DONE

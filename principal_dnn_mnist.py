@@ -44,11 +44,24 @@ def cross_entropy(y, y_pred, derivate=False):
 #####################################################################
 
 class DNN(DBN): # we consider a deep neural network as a deep belief network with one last layer to which we apply softmax - allows us to pretrain !
-    def __init__(self, n_v=None, layers=None, k=1, dic_load=None):
-        super().__init__(n_v, layers, k, dic_load)
-        # we copy our DBN structure
-        self.weights = [rbm.W for rbm in self.rbms]
-        self.biases = [rbm.c for rbm in self.rbms]
+    def __init__(self, n_v=None, layers=None, k=1, dic_load=None, dnn_load=None):
+        # Not the cleanest way to define the NN structure wrt the underlying DBN structure
+        # as DBN isn't updated by training here - only W and B are
+        # but allows for consistent notations and possibility
+        # to load pretrained DBN & trained DNN separately
+        if dnn_load is None:
+            super().__init__(n_v, layers, k, dic_load)
+            # we copy our DBN structure
+            self.weights = [rbm.W for rbm in self.rbms]
+            self.biases = [rbm.c for rbm in self.rbms]
+        else:
+            # all we need to make predictions
+            self.n_layer = dnn_load['n_layer']
+            self.weights = dnn_load['weights']
+            self.biases = dnn_load['biases']
+            
+            assert self.n_layer == len(self.weights), "n_layer inconsistent with number of weight matrices"
+            assert self.n_layer == len(self.biases), "n_layer inconsistent with number of bias vectors"
                     
     def forward(self, X):
         return super().forward(X)
@@ -76,7 +89,7 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
     # DNN specific functions
     def predict(self, X):
         return np.argmax(calcul_softmax(self.forward_DNN(X)))
-            
+                
     def backpropagate(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
@@ -134,7 +147,9 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
                 self.update_batch(batch, learning_rate)
             if epoch % 10 == 0:
                 y_pred = np.array(list(map(calcul_softmax, self.forward_DNN(X).T)))
-                print(f'Epoch {epoch} - Cross-entropy : {cross_entropy(y, y_pred).mean()}')
+                labels = np.array(list(map(np.argmax,y)))
+                pred_labels = np.array(list(map(np.argmax, y_pred)))
+                print(f'Epoch {epoch} - Cross-entropy : {cross_entropy(y, y_pred).mean()} - Train accuracy : {(labels == pred_labels).mean():.2%}')
         return
     
     def save_model(self, name:str, dnn=False):
@@ -147,10 +162,12 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
     
     @classmethod
     def load_model(cls, path:str, dnn=False):
-        # if dnn:
-            # pass
-        # else:
-        return super().load_model(path)
+        if dnn:
+            with open(path, 'rb') as tbon:
+                dic = pickle.load(tbon)
+            return cls(dnn_load=dic) # dnn_load instead of dic_load ( which should be renamed dbn_load)
+        else:
+            return super().load_model(path)
 
     
     
@@ -164,6 +181,7 @@ def main(pretrain=False, load=False, train=True):
     
     # Better to pretrain without setting random seed then train, as contrastive divergence
     # relays on gibbs sampling and therefore on unpredictability of sampling
+    
     
     ############################### Prepare DATA ###############################
     # Convert from .mat to usable arrays and plot
@@ -186,7 +204,6 @@ def main(pretrain=False, load=False, train=True):
         y[label] = 1
         one_hot_labels.append(y)
     one_hot_labels = np.array(one_hot_labels)
-    
     ###################################
 
     plt.imshow(images[3][0], cmap='Greys_r')
@@ -205,7 +222,7 @@ def main(pretrain=False, load=False, train=True):
             break
 
     labels_array = np.array(labels_array)
-    # train_data = list(zip(data, labels_array[:39*9])) # zips data and relevant label in tuples
+    
     
     ###############################  Pretrain DNN  ###############################
     n_v = 20*16
@@ -217,7 +234,7 @@ def main(pretrain=False, load=False, train=True):
     if pretrain:
         # pretrain or load pretrained dbn
         if load:
-            dnn = DNN.load_model('./models/DBN_3_150.txt') # load our trained DBN
+            dnn = DNN.load_model('./models/DBN_pretrain_alpha_3_150.txt') # load our trained DBN
             
             # add last layer to make DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -233,7 +250,7 @@ def main(pretrain=False, load=False, train=True):
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
-            dnn.pretrain_model(data, epochs=150, save=True) # train DBN greedily
+            dnn.pretrain_model(data, epochs=150, save=False) # train DBN greedily
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -241,10 +258,12 @@ def main(pretrain=False, load=False, train=True):
             dnn.biases = [rbm.c for rbm in dnn.rbms]
             dnn.biases.append(np.zeros(output).reshape(-1,1))
             dnn.n_layer += 1
-        
+    
+    
+    ###############################  Train DNN  ###############################    
     else:
         if load:
-            dnn = DNN.load_model('./models/dnn_trained.txt')
+            dnn = DNN.load_model('./models/dnn_trained_alpha', dnn=True)
         else:
             layers = [
                 (h_1, None),
@@ -259,7 +278,7 @@ def main(pretrain=False, load=False, train=True):
     
     if train:
         dnn.train_model(X, y)
-    # dnn.save_model('./models/dnn_trained_1', dnn=True)
+        dnn.save_model('./models/dnn_trained_alpha', dnn=True)
     
 
 if __name__ == '__main__':

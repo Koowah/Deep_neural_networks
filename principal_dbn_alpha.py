@@ -69,11 +69,11 @@ class DBN():
         
         return Vp, Vs
 
-    def pretrain_model(self, X, epochs=1, learning=0.01, save=False): # train dbn <=> pretrain dnn
+    def pretrain_model(self, X, batch_size=10, epochs=100, learning=0.01, save=False): # train dbn <=> pretrain dnn
         
         for layer in range(self.n_layer):
             print(f'Layer {layer + 1} training :')
-            self.rbms[layer].train_rbm(X, n_epoch=epochs, learning=learning)
+            self.rbms[layer].train_rbm(X, batch_size=batch_size, n_epoch=epochs, learning=learning)
             X = np.swapaxes((np.array(list(map(lambda x : self.rbms[layer].forward(x.T), X)))[:, 0, :, :]), 1, 2)
             
             # Two ways of saving, either we save whole model or separate RBMS and initialize 'layer' with trained RBMS
@@ -172,7 +172,7 @@ def main(train=True):
         #     (h_2, RBM.load_model('./models/rbm_150_1.txt')),
         #     (h_3, RBM.load_model('./models/rbm_150_2.txt')),
         # ]
-        dbn = DBN.load_model(path='./models/DBN_3_150.txt')
+        dbn = DBN.load_model(path='./models/DBN_pretrain_alpha_3_150.txt')
 
     data = lire_alpha_digit(images, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) # retrieve all numerical classes
     

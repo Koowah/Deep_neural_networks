@@ -1,14 +1,12 @@
 import time
-import pickle
+import pickle # to load data
 
-import torch
-from torchvision import datasets, transforms
+# import torch
+# from torchvision import datasets, transforms
 
 import numpy as np
-import scipy.io # en attendant de dl torch sur pc portable
 import matplotlib.pyplot as plt
 
-from principal_rbm_alpha import RBM
 from principal_dbn_alpha import DBN
 
 
@@ -210,31 +208,48 @@ def main(pretrain=False, load=False, train=True):
     # relays on gibbs sampling and therefore on unpredictability of sampling
     
     
-    ############################### Prepare DATA ###############################
-    t0 = time.time()
-    # Define a transform to normalize the data
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Normalize((0.5,), (0.5,))])
-    # Download and load the training data
-    if train:
-        trainset = datasets.MNIST('./data/processed', download=False, train=True, transform=transform)
-        trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset)) # can specify batch_size and shuffle=True but will be done manually for the sake of the exercise
-    # Download and load the test data
-    testset = datasets.MNIST('./data/processed', download=False, train=False, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset)) # same remark
+    ############################### Prepare DATA TORCHVISION ###############################
+    # # Define a transform to normalize the data
+    # transform = transforms.Compose([transforms.ToTensor(),
+    #                                 transforms.Normalize((0.5,), (0.5,))])
+    # # Download and load the training data
+    # if train:
+    #     trainset = datasets.MNIST('./data/processed', download=False, train=True, transform=transform)
+    #     trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset)) # can specify batch_size and shuffle=True but will be done manually for the sake of the exercise
+    # # Download and load the test data
+    # testset = datasets.MNIST('./data/processed', download=False, train=False, transform=transform)
+    # testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset)) # same remark
+    
+    # if train:
+    #     train_data = next(iter(trainloader))[0].numpy().reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+    #     train_labels = next(iter(trainloader))[1].numpy().reshape(-1,1)
+    #     one_hot_train_labels = one_hot(train_labels)
+        
+    # test_data = next(iter(testloader))[0].numpy().reshape(10_000, -1, 1)
+    # test_labels = next(iter(testloader))[1].numpy().reshape(-1,1)
+
+    
+    ############################### Prepare DATA General Method ###############################
     
     #######################################################
     ###################### MAIN DATA ######################
-    # Format images as numpy ndarray of shape (n_sample, 1, 28, 28) 
+    # Format images as numpy ndarray of shape (n_sample, 1, 28*28) 
     # and labels as array of shape (n_sample)
     # n_sample = 60 000 for train 10 000 for test
+    t0 = time.time()
+    path = './data/processed/mnist_numpy'
+    with open(path, 'rb') as f:
+        data = pickle.load(f)
+     
+    # DATA NORMALIZED IN [-1 , 1] FOR TRAINING SO MUST BE THE SAME FOR TEST
+    # TRY TRAINING WITH NORMALIZED [0, 1] TO THEN GET RID OF LEVELS OF GRAY    
     if train:
-        train_data = next(iter(trainloader))[0].numpy().reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
-        train_labels = next(iter(trainloader))[1].numpy().reshape(-1,1)
+        train_data = (((data['train_images']/255)-.5)/.5).reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+        train_labels = data['train_labels'].reshape(-1,1)
         one_hot_train_labels = one_hot(train_labels)
         
-    test_data = next(iter(testloader))[0].numpy().reshape(10_000, -1, 1)
-    test_labels = next(iter(testloader))[1].numpy().reshape(-1,1)
+    test_data = (((data['test_images']/255)-.5)/.5).reshape(10_000, -1, 1)
+    test_labels = data['test_labels'].reshape(-1,1)
     # one_hot_test_labels = one_hot(test_labels)
     #######################################################
     #######################################################

@@ -1,4 +1,9 @@
+import time
 import pickle
+
+import torch
+from torchvision import datasets, transforms
+
 import numpy as np
 import scipy.io # en attendant de dl torch sur pc portable
 import matplotlib.pyplot as plt
@@ -10,6 +15,16 @@ from principal_dbn_alpha import DBN
 ######################################################################
 #########################  HELPER FUNCTIONS  #########################
 ######################################################################
+
+# one_hot encodes numerical labels
+def one_hot(num_labels):
+    one_hot_labels = []
+    for label in num_labels:
+        y = [0 for i in range(10)]
+        y[int(label)] = 1
+        one_hot_labels.append(y)
+    one_hot_labels = np.array(one_hot_labels)
+    return one_hot_labels
 
 # Helper function to get images formatted properly into array
 def lire_alpha_digit(all_images, classes:list):
@@ -83,8 +98,8 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
     def backward(self, H):
         return super().backward(H)
     
-    def pretrain_model(self, X, epochs=1, learning=0.01, save=False):
-        return super().pretrain_model(X, epochs, learning, save)
+    def pretrain_model(self, X, batch_size=10, epochs=100, learning=0.01, save=False):
+        return super().pretrain_model(X, batch_size, epochs, learning, save)
     
     # DNN specific functions
     def predict(self, X):
@@ -127,7 +142,10 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in batch:
+            t0 = time.time()
             delta_nabla_b, delta_nabla_w = self.backpropagate(x, y)
+            t1 = time.time()
+            print('backpropagate for one input time : ', t1 - t0)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
         self.weights = [w-(eta)*nw 
@@ -141,10 +159,16 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
         data = list(zip(X, y))
         
         for epoch in range(epochs):
+            t0 = time.time()
             np.random.shuffle(data)
             batches = [data[i * batch_size : min((i+1)*batch_size, X.shape[0]-1)] for i in range(num_batches)]
+            t1 = time.time()
+            print('shuffle + make batches time : ', t1 - t0)
             for batch in batches:
+                t2 = time.time()
                 self.update_batch(batch, learning_rate)
+                t3 = time.time()
+                print('update_batch time : ', t3 - t2)
             if epoch % 10 == 0:
                 y_pred = np.array(list(map(calcul_softmax, self.forward_DNN(X).T)))
                 labels = np.array(list(map(np.argmax,y)))
@@ -178,63 +202,53 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
 def main(pretrain=False, load=False, train=True):
     ############################### WARNING ###############################
     np.random.seed(42) # set random seed for reproducibility
-    
     # Better to pretrain without setting random seed then train, as contrastive divergence
     # relays on gibbs sampling and therefore on unpredictability of sampling
     
     
     ############################### Prepare DATA ###############################
-    # Convert from .mat to usable arrays and plot
-    file_mat = './data/raw/alpha_binary.mat'
-    mat = scipy.io.loadmat(file_mat)
+    t0 = time.time()
+    # Define a transform to normalize the data
+    transform = transforms.Compose([transforms.ToTensor(),
+                                    transforms.Normalize((0.5,), (0.5,))])
+    # Download and load the training data
+    trainset = datasets.MNIST('./data/processed', download=False, train=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset)) # can specify batch_size and shuffle=True but will be done manually for the sake of the exercise
+    # Download and load the test data
+    testset = datasets.MNIST('./data/processed', download=False, train=False, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset)) # same remark
     
-    print('Type scipy loaded .mat : ', type(mat))
-    print('mat dictionary keys : ', mat.keys())
-    print("mat['dat'] values shape : ", mat['dat'].shape) # 39 samples for each of the 36 classes - 10 digits & 26 letters
-    print("mat['classlabels'] elements : ", mat['classlabels'][0])
-
-    ###################################
-    images = mat['dat'] # OUR MAIN DATA
-    labels = np.array([label.item() for label in mat['classlabels'][0]]) # retrieves the labels
+    #######################################################
+    ###################### MAIN DATA ######################
+    # Format images as numpy ndarray of shape (n_sample, 1, 28, 28) 
+    # and labels as array of shape (n_sample)
+    # n_sample = 60 000 for train 10 000 for test
+    # train_data = next(iter(trainloader))[0].numpy().reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+    # train_labels = next(iter(trainloader))[1].numpy().reshape(-1,1)
+    # one_hot_train_labels = one_hot(train_labels)
     
-    num_labels = np.array([int(label) for label in labels[:10]])
-    one_hot_labels = []
-    for label in num_labels:
-        y = [0 for i in range(len(num_labels))]
-        y[label] = 1
-        one_hot_labels.append(y)
-    one_hot_labels = np.array(one_hot_labels)
-    ###################################
-
-    plt.imshow(images[3][0], cmap='Greys_r')
+    test_data = next(iter(testloader))[0].numpy().reshape(10_000, -1, 1)
+    test_labels = next(iter(testloader))[1].numpy().reshape(-1,1)
+    one_hot_test_labels = one_hot(test_labels)
+    #######################################################
+    #######################################################
+    t1 = time.time()
+    print('Loading data and formatting time : ', t1 - t0)
+    plt.imshow(test_data[0].reshape(28,28), cmap='Greys_r')
     plt.show()
 
-    plt.imshow(images[10][0], cmap='Greys_r')
-    plt.show()
-
-    data = lire_alpha_digit(images, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) # retrieve all numerical classes
-    
-    labels_array = []
-    for index, classe in enumerate(images):
-        for image in classe:
-            labels_array.append(one_hot_labels[index])
-        if index==9:
-            break
-
-    labels_array = np.array(labels_array)
-    
     
     ###############################  Pretrain DNN  ###############################
-    n_v = 20*16
-    h_1 = 20*10
-    h_2 = 20*10
-    h_3 = 20*8
+    n_v = 28*28
+    h_1 = 20*20
+    h_2 = 20*20
+    h_3 = 20*14
     output = 10
     
     if pretrain:
         # pretrain or load pretrained dbn
         if load:
-            dnn = DNN.load_model('./models/DBN_pretrain_alpha_3_150.txt') # load our trained DBN
+            dnn = DNN.load_model('./models/DBN_pretrain_mnist_3_150.txt') # load our trained DBN
             
             # add last layer to make DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -250,7 +264,7 @@ def main(pretrain=False, load=False, train=True):
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
-            dnn.pretrain_model(data, epochs=150, save=False) # train DBN greedily
+            dnn.pretrain_model(test_data, batch_size=100, epochs=150, save=True) # train DBN greedily
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -260,10 +274,10 @@ def main(pretrain=False, load=False, train=True):
             dnn.n_layer += 1
     
     
-    ###############################  Train DNN  ###############################    
+    ###############################  Initialize Random DNN  ###############################    
     else:
         if load:
-            dnn = DNN.load_model('./models/dnn_trained_alpha', dnn=True)
+            dnn = DNN.load_model('./models/dnn_trained_mnist.txt', dnn=True)
         else:
             layers = [
                 (h_1, None),
@@ -273,15 +287,23 @@ def main(pretrain=False, load=False, train=True):
             ]
             dnn = DNN(n_v, layers)
         
-    X = data.copy().squeeze()
-    y = labels_array.copy()
+    X = test_data.squeeze()
+    y = test_labels
+    t2 = time.time()
+    # Here train-test split
     
+    ###############################  Train DNN  ###############################
     if train:
-        dnn.train_model(X, y)
-        dnn.save_model('./models/dnn_trained_alpha', dnn=True)
+        dnn.train_model(X, y, batch_size=100, epochs=200, learning_rate=.1)
+        dnn.save_model('./models/dnn_trained_mnist.txt', dnn=True)
+        
+    ###############################  Test DNN  ###############################
+    else:
+        # Utilize test set to assess accuracy
+        pass
     
 
 if __name__ == '__main__':
-    main(pretrain=True, load=True)
+    main(pretrain=False)
     
     # def numpy uniform permutation/sklearn -> train test split to data and labels_array -> check distribution -> def accuracy -> make plots -> apply to MNIST -> DONE

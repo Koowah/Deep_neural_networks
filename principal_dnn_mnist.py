@@ -26,15 +26,6 @@ def one_hot(num_labels):
     one_hot_labels = np.array(one_hot_labels)
     return one_hot_labels
 
-# Helper function to get images formatted properly into array
-def lire_alpha_digit(all_images, classes:list):
-    data = []
-    for cls in classes:
-        for image in all_images[cls]:
-            data.append(image.flatten().reshape(-1,1))
-    
-    return np.array(data)
-
 # DNN helper functions
 def sigmoid(x, derivate=False):
     sigm = 1 / (1 + np.exp(-x))
@@ -53,6 +44,19 @@ def calcul_softmax(scores):
 
 def cross_entropy(y, y_pred, derivate=False):
     return - (y_pred - y) if derivate else - (y * np.log(y_pred))
+
+def accuracy(test_data, test_labels, dnn):
+    X_test = test_data.squeeze()
+    y_test = test_labels
+        
+    # predict labels
+    y_pred = np.array(list(map(calcul_softmax, dnn.forward_DNN(X_test).T)))
+    pred_labels = np.array(list(map(np.argmax, y_pred))).reshape(-1,1)
+        
+    # accuracy
+    accuracy = (y_test == pred_labels).mean()
+    
+    return accuracy
 
 #####################################################################
 ###############################  DNN  ###############################
@@ -300,16 +304,8 @@ def main(pretrain=False, load=False, train=True):
     ###############################  Test DNN  ###############################
     else:
         # Utilize test set to assess accuracy
-        X_test = test_data.squeeze()
-        y_test = test_labels
-        
-        # predict labels
-        y_pred = np.array(list(map(calcul_softmax, dnn.forward_DNN(X_test).T)))
-        pred_labels = np.array(list(map(np.argmax, y_pred))).reshape(-1,1)
-        
-        # accuracy
-        accuracy = (y_test == pred_labels).mean()
-        print(f'Accuracy on test set : {accuracy:.2%}')
+        acc = accuracy(test_data, test_labels, dnn)
+        print(f'Accuracy on test set : {acc:.2%}')
     
 
 if __name__ == '__main__':

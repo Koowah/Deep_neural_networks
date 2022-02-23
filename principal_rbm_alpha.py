@@ -107,16 +107,20 @@ class RBM:
         Vp, Vs = self.backward(Hp)
         return Vp, Vs
     
-    def train_rbm(self, train_data, n_epoch=100, learning=0.01): # train_rbm
+    def train_rbm(self, train_data, batch_size=10, n_epoch=100, learning=0.01): # train_rbm
+        num_batches = train_data.shape[0]//batch_size + (train_data.shape[0] % batch_size > 0)
         data = train_data.copy()
-        for _ in range(n_epoch):
+        
+        for epoch in range(n_epoch):
             MSE = []
             np.random.shuffle(data)
-            for x in data:
-                self.contrastive_divergence(x.T, learning)
-                reconstructed = self.reconstruct(x.T)
-                MSE.append(((x.T - reconstructed)**2).sum()/len(x))
-            print(f'MSE for epoch {_}: {np.array(MSE).mean()}')                      
+            batches = [data[i * batch_size : min((i+1)*batch_size, train_data.shape[0]-1)] for i in range(num_batches)]
+            for batch in batches:
+                for x in batch:
+                    self.contrastive_divergence(x.T, learning)
+                    reconstructed = self.reconstruct(x.T)
+                    MSE.append(((x.T - reconstructed)**2).sum()/len(x))
+            print(f'MSE for epoch {epoch}: {np.array(MSE).mean()}')                      
         return
     
     def generate_image(self, iter_gibbs, number_image): # generer_image_rbm
@@ -166,6 +170,7 @@ def main():
 
     plt.imshow(images[10][0], cmap='Greys_r')
     plt.show()
+
 
     ###############################  RBM Generative Power  ###############################
     rbm = RBM(20*16, 20*8) # define RBM structure

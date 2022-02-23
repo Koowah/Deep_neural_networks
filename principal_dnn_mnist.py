@@ -263,4 +263,6 @@ def main(pretrain=False, load=False, train=True):
     
 
 if __name__ == '__main__':
-    main()
+    main(pretrain=True, load=True)
+    
+    # def numpy uniform permutation/sklearn -> train test split to data and labels_array -> check distribution -> def accuracy -> make plots -> apply to MNIST -> DONE

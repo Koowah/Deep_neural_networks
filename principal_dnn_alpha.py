@@ -11,6 +11,15 @@ from principal_dbn_alpha import DBN
 #########################  HELPER FUNCTIONS  #########################
 ######################################################################
 
+def one_hot(num_labels):
+    one_hot_labels = []
+    for label in num_labels:
+        y = [0 for i in range(10)]
+        y[label] = 1
+        one_hot_labels.append(y)
+    one_hot_labels = np.array(one_hot_labels)
+    return one_hot_labels
+
 # Helper function to get images formatted properly into array
 def lire_alpha_digit(all_images, classes:list):
     data = []
@@ -198,12 +207,7 @@ def main(pretrain=False, load=False, train=True):
     labels = np.array([label.item() for label in mat['classlabels'][0]]) # retrieves the labels
     
     num_labels = np.array([int(label) for label in labels[:10]])
-    one_hot_labels = []
-    for label in num_labels:
-        y = [0 for i in range(len(num_labels))]
-        y[label] = 1
-        one_hot_labels.append(y)
-    one_hot_labels = np.array(one_hot_labels)
+    one_hot_labels = one_hot(num_labels)
     ###################################
 
     plt.imshow(images[3][0], cmap='Greys_r')
@@ -260,10 +264,10 @@ def main(pretrain=False, load=False, train=True):
             dnn.n_layer += 1
     
     
-    ###############################  Train DNN  ###############################    
+    ###############################  Initialize Random DNN  ###############################    
     else:
         if load:
-            dnn = DNN.load_model('./models/dnn_trained_alpha', dnn=True)
+            dnn = DNN.load_model('./models/dnn_trained_alpha.txt', dnn=True)
         else:
             layers = [
                 (h_1, None),
@@ -276,9 +280,17 @@ def main(pretrain=False, load=False, train=True):
     X = data.copy().squeeze()
     y = labels_array.copy()
     
+    # Here train-test split
+    
+    ###############################  Train DNN  ###############################
     if train:
         dnn.train_model(X, y)
-        dnn.save_model('./models/dnn_trained_alpha', dnn=True)
+        dnn.save_model('./models/dnn_trained_alpha.txt', dnn=True)
+        
+    ###############################  Test DNN  ###############################
+    else:
+        # Utilize test set to assess accuracy
+        pass
     
 
 if __name__ == '__main__':

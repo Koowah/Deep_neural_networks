@@ -33,6 +33,22 @@ import gzip
 
 # add download with requests
 
+def normalize(images):
+    max = np.max(images)
+    min = np.min(images)
+    images_minmax = (images - min) / (max - min)
+    
+    return (images_minmax - .5) / .5
+
+def one_hot(num_labels):
+    one_hot_labels = []
+    for label in num_labels:
+        y = [0 for i in range(10)]
+        y[int(label)] = 1
+        one_hot_labels.append(y)
+    one_hot_labels = np.array(one_hot_labels)
+    return one_hot_labels
+
 files = ['./data/raw/train-images-idx3-ubyte.gz', './data/raw/t10k-images-idx3-ubyte.gz',
          './data/raw/train-labels-idx1-ubyte.gz', './data/raw/t10k-labels-idx1-ubyte.gz']
 files_desc = ['train_images', 'test_images',
@@ -47,6 +63,16 @@ for path, key in zip(files[:2], files_desc[:2]):
 for path, key in zip(files[2:], files_desc[2:]):
     with gzip.open(path, 'rb') as f:
         data[key] = np.frombuffer(f.read(), np.uint8, offset=8)
+
+# with open('./data/interim/mnist_numpy', 'wb') as f:
+#     pickle.dump(data, f)
+    
+########################## Normalize ##########################
+
+data[files_desc[0]] = normalize(data[files_desc[0]]) # normalize train images
+data[files_desc[1]] = normalize(data[files_desc[1]]) # normalize test images
+data[files_desc[2]] = one_hot(data[files_desc[2]]) # one hot train labels
+data[files_desc[3]] = one_hot(data[files_desc[3]]) # one hot test labels
 
 with open('./data/processed/mnist_numpy', 'wb') as f:
     pickle.dump(data, f)

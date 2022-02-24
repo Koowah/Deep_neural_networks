@@ -33,12 +33,17 @@ import gzip
 
 # add download with requests
 
-def normalize(images):
+def normalize(images, center=False, black_and_white=False):
     max = np.max(images)
     min = np.min(images)
     images_minmax = (images - min) / (max - min)
     
-    return (images_minmax - .5) / .5
+    if black_and_white:
+        images_minmax = 0*(images_minmax == 0) + 1*(images_minmax > 0)
+    if center:
+        images_minmax = (images_minmax - .5) / .5
+    
+    return images_minmax
 
 def one_hot(num_labels):
     one_hot_labels = []
@@ -69,8 +74,8 @@ for path, key in zip(files[2:], files_desc[2:]):
     
 ########################## Normalize ##########################
 
-data[files_desc[0]] = normalize(data[files_desc[0]]) # normalize train images
-data[files_desc[1]] = normalize(data[files_desc[1]]) # normalize test images
+data[files_desc[0]] = normalize(data[files_desc[0]], black_and_white=True, center=False) # normalize train images
+data[files_desc[1]] = normalize(data[files_desc[1]], black_and_white=True, center=False) # normalize test images
 data[files_desc[2]] = one_hot(data[files_desc[2]]) # one hot train labels
 data[files_desc[3]] = one_hot(data[files_desc[3]]) # one hot test labels
 

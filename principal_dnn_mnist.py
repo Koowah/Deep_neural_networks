@@ -15,6 +15,7 @@ from principal_dbn_alpha import DBN
 ######################################################################
 
 # one_hot encodes numerical labels
+# used in make_mnist file
 def one_hot(num_labels):
     one_hot_labels = []
     for label in num_labels:
@@ -50,9 +51,10 @@ def accuracy(test_data, test_labels, dnn):
     # predict labels
     y_pred = np.array(list(map(calcul_softmax, dnn.forward_DNN(X_test).T)))
     pred_labels = np.array(list(map(np.argmax, y_pred))).reshape(-1,1)
+    labels = np.array(list(map(np.argmax,y_test))).reshape(-1,1)
         
     # accuracy
-    accuracy = (y_test == pred_labels).mean()
+    accuracy = (labels == pred_labels).mean()
     
     return accuracy
 
@@ -230,27 +232,26 @@ def main(pretrain=False, load=False, train=True):
 
     
     ############################### Prepare DATA General Method ###############################
-    
+
     #######################################################
     ###################### MAIN DATA ######################
     # Format images as numpy ndarray of shape (n_sample, 1, 28*28) 
-    # and labels as array of shape (n_sample)
+    # and labels as array of shape (n_sample, n_classes)
     # n_sample = 60 000 for train 10 000 for test
-    t0 = time.time()
+    
+    # import preprocessed data = images scaled in [-1, 1] and one_hot encoded labels
+    # generate mnist_numpy with ---> make_mnist.py
     path = './data/processed/mnist_numpy'
     with open(path, 'rb') as f:
         data = pickle.load(f)
      
-    # DATA NORMALIZED IN [-1 , 1] FOR TRAINING SO MUST BE THE SAME FOR TEST
-    # TRY TRAINING WITH NORMALIZED [0, 1] TO THEN GET RID OF LEVELS OF GRAY    
+    # DATA NORMALIZATION SCHEDULE MUST BE SAME BETWEEN TRAINING (VALIDATION) & TEST
     if train:
-        train_data = (((data['train_images']/255)-.5)/.5).reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
-        train_labels = data['train_labels'].reshape(-1,1)
-        one_hot_train_labels = one_hot(train_labels)
+        train_data = data['train_images'].reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+        train_labels = data['train_labels']
         
-    test_data = (((data['test_images']/255)-.5)/.5).reshape(10_000, -1, 1)
-    test_labels = data['test_labels'].reshape(-1,1)
-    # one_hot_test_labels = one_hot(test_labels)
+    test_data = data['test_images'].reshape(10_000, -1, 1)
+    test_labels = data['test_labels']
     #######################################################
     #######################################################
     t1 = time.time()
@@ -268,7 +269,7 @@ def main(pretrain=False, load=False, train=True):
     if pretrain:
         # pretrain or load pretrained dbn
         if load:
-            dnn = DNN.load_model('./models/DBN_pretrain_mnist_3_150.txt') # load our trained DBN
+            dnn = DNN.load_model('./models/DBN_pretrain_mnist_2_100.txt') # load our trained DBN
             
             # add last layer to make DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -288,7 +289,7 @@ def main(pretrain=False, load=False, train=True):
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
-            dnn.weights.append(np.random.normal(0, .1, size=(output, dnn.n_hs[dnn.n_layer - 1])))
+            dnn.weights.append(np.random.normal(0, .1, size=(output, dnn.n_hs[dnn.n_layer])))
             dnn.biases = [rbm.c for rbm in dnn.rbms]
             dnn.biases.append(np.zeros(output).reshape(-1,1))
             dnn.n_layer += 1
@@ -311,7 +312,7 @@ def main(pretrain=False, load=False, train=True):
     ###############################  Train DNN  ###############################
     if train:
         X_train = train_data.squeeze()
-        y_train = one_hot_train_labels
+        y_train = train_labels
         
         dnn.train_model(X_train, y_train, batch_size=64, epochs=200, learning_rate=.01)
         dnn.save_model('./models/dnn_trained_mnist', dnn=True)
@@ -325,5 +326,3 @@ def main(pretrain=False, load=False, train=True):
 
 if __name__ == '__main__':
     main(pretrain=False, load=True, train=False)
-    
-    # def numpy uniform permutation/sklearn -> train test split to data and labels_array -> check distribution -> def accuracy -> make plots -> apply to MNIST -> DONE

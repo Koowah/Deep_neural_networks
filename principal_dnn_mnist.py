@@ -162,6 +162,12 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
         num_batches = X.shape[0]//batch_size + (X.shape[0] % batch_size > 0)
         data = list(zip(X, y))
         
+        # epoch 0 - before the first update
+        y_pred = np.array(list(map(calcul_softmax, self.forward_DNN(X).T)))
+        labels = np.array(list(map(np.argmax,y)))
+        pred_labels = np.array(list(map(np.argmax, y_pred)))
+        print(f'Initial state - Cross-entropy : {cross_entropy(y, y_pred).mean()} - Train accuracy : {(labels == pred_labels).mean():.2%}')
+        
         for epoch in range(epochs):
             # t0 = time.time()
             np.random.shuffle(data)
@@ -312,6 +318,10 @@ def main(pretrain=False, load=False, train=True):
         dnn.train_model(X_train, y_train, batch_size=64, epochs=50, learning_rate=.01)
         dnn.save_model('./models/dnn_trained_mnist', dnn=True)
         
+        # Utilize test set to assess accuracy
+        acc = accuracy(test_data, test_labels, dnn)
+        print(f'Accuracy on test set : {acc:.2%}')
+        
     ###############################  Test DNN  ###############################
     else:
         # Utilize test set to assess accuracy
@@ -320,4 +330,4 @@ def main(pretrain=False, load=False, train=True):
     
 
 if __name__ == '__main__':
-    main(pretrain=False, load=True, train=False)
+    main(pretrain=True, load=False, train=True)

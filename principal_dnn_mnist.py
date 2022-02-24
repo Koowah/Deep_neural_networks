@@ -205,7 +205,7 @@ class DNN(DBN): # we consider a deep neural network as a deep belief network wit
   
 def main(pretrain=False, load=False, train=True):
     ############################### WARNING ###############################
-    np.random.seed(42) # set random seed for reproducibility
+    # np.random.seed(42) # set random seed for reproducibility
     # Better to pretrain without setting random seed then train, as contrastive divergence
     # relays on gibbs sampling and therefore on unpredictability of sampling
     
@@ -232,9 +232,6 @@ def main(pretrain=False, load=False, train=True):
 
     
     ############################### Prepare DATA General Method ###############################
-
-    #######################################################
-    ###################### MAIN DATA ######################
     # Format images as numpy ndarray of shape (n_sample, 1, 28*28) 
     # and labels as array of shape (n_sample, n_classes)
     # n_sample = 60 000 for train 10 000 for test
@@ -245,17 +242,15 @@ def main(pretrain=False, load=False, train=True):
     with open(path, 'rb') as f:
         data = pickle.load(f)
      
-    # DATA NORMALIZATION SCHEDULE MUST BE SAME BETWEEN TRAINING (VALIDATION) & TEST
+    # DATA NORMALIZATION SCHEDULE MUST BE SAME BETWEEN TRAINING (VALIDATION) & TEST - cf make_mnist.py
     if train:
         train_data = data['train_images'].reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
         train_labels = data['train_labels']
         
     test_data = data['test_images'].reshape(10_000, -1, 1)
     test_labels = data['test_labels']
-    #######################################################
-    #######################################################
-    t1 = time.time()
-    print('Loading data and formatting time : ', t1 - t0)
+    
+    # plot one number
     plt.imshow(test_data[0].reshape(28,28), cmap='Greys_r')
     plt.show()
 
@@ -285,7 +280,7 @@ def main(pretrain=False, load=False, train=True):
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
-            dnn.pretrain_model(test_data, batch_size=100, epochs=150, save=True) # train DBN greedily
+            dnn.pretrain_model(test_data, batch_size=100, epochs=100, save=True) # train DBN greedily
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -314,7 +309,7 @@ def main(pretrain=False, load=False, train=True):
         X_train = train_data.squeeze()
         y_train = train_labels
         
-        dnn.train_model(X_train, y_train, batch_size=64, epochs=200, learning_rate=.01)
+        dnn.train_model(X_train, y_train, batch_size=64, epochs=50, learning_rate=.01)
         dnn.save_model('./models/dnn_trained_mnist', dnn=True)
         
     ###############################  Test DNN  ###############################

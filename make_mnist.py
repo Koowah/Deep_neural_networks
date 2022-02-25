@@ -33,6 +33,8 @@ import gzip
 
 # add download with requests
 
+########################## Helper functions ##########################
+
 def normalize(images, center=False, black_and_white=False):
     max = np.max(images)
     min = np.min(images)
@@ -42,7 +44,7 @@ def normalize(images, center=False, black_and_white=False):
         images_minmax = 0*(images_minmax == 0) + 1*(images_minmax > 0)
     if center:
         images_minmax = (images_minmax - .5) / .5
-    
+            
     return images_minmax
 
 def one_hot(num_labels):
@@ -54,30 +56,54 @@ def one_hot(num_labels):
     one_hot_labels = np.array(one_hot_labels)
     return one_hot_labels
 
-files = ['./data/raw/train-images-idx3-ubyte.gz', './data/raw/t10k-images-idx3-ubyte.gz',
-         './data/raw/train-labels-idx1-ubyte.gz', './data/raw/t10k-labels-idx1-ubyte.gz']
-files_desc = ['train_images', 'test_images',
-              'train_labels', 'test_labels']
-data = {}
-for path, key in zip(files[:2], files_desc[:2]):
-    with gzip.open(path, 'rb') as f:
-        data[key] = (np.frombuffer(
-                f.read(), np.uint8, offset=16
-            ).reshape(-1, 28 * 28))
-        
-for path, key in zip(files[2:], files_desc[2:]):
-    with gzip.open(path, 'rb') as f:
-        data[key] = np.frombuffer(f.read(), np.uint8, offset=8)
 
-# with open('./data/interim/mnist_numpy', 'wb') as f:
-#     pickle.dump(data, f)
+def main(num_train=60_000):
+    files = ['./data/raw/train-images-idx3-ubyte.gz', './data/raw/t10k-images-idx3-ubyte.gz',
+            './data/raw/train-labels-idx1-ubyte.gz', './data/raw/t10k-labels-idx1-ubyte.gz']
+    files_desc = ['train_images', 'test_images',
+                'train_labels', 'test_labels']
+    data = {}
     
-########################## Normalize ##########################
+    ########################## Read MNIST data from zip and write as numpy arrays into dictionnary ##########################
+    
+    for path, key in zip(files[:2], files_desc[:2]):
+        with gzip.open(path, 'rb') as f:
+            data[key] = (np.frombuffer(
+                    f.read(), np.uint8, offset=16
+                ).reshape(-1, 28 * 28))
+            
+    for path, key in zip(files[2:], files_desc[2:]):
+        with gzip.open(path, 'rb') as f:
+            data[key] = np.frombuffer(f.read(), np.uint8, offset=8)
 
-data[files_desc[0]] = normalize(data[files_desc[0]], black_and_white=True, center=False) # normalize train images
-data[files_desc[1]] = normalize(data[files_desc[1]], black_and_white=True, center=False) # normalize test images
-data[files_desc[2]] = one_hot(data[files_desc[2]]) # one hot train labels
-data[files_desc[3]] = one_hot(data[files_desc[3]]) # one hot test labels
 
-with open('./data/processed/mnist_numpy', 'wb') as f:
-    pickle.dump(data, f)
+    ########################## Write numpy mnist into file ##########################
+    
+    # with open('./data/interim/mnist_numpy', 'wb') as f:
+    #     pickle.dump(data, f)
+        
+
+    ########################## Normalize ##########################
+
+    data[files_desc[0]] = normalize(data[files_desc[0]], black_and_white=True, center=False) # normalize train images
+    data[files_desc[1]] = normalize(data[files_desc[1]], black_and_white=True, center=False) # normalize test images
+    data[files_desc[2]] = one_hot(data[files_desc[2]]) # one hot train labels
+    data[files_desc[3]] = one_hot(data[files_desc[3]]) # one hot test labels
+    
+    
+    ########################## Select train data size ##########################
+    if num_train != 60_000:
+        indices = np.random.permutation(60_000)
+        data[files_desc[0]] = data[files_desc[0]][indices] # shuffle images
+        data[files_desc[2]] = data[files_desc[2]][indices] # shuffle labels with same permutation
+        
+        data[files_desc[0]] = data[files_desc[0]][:num_train] # select num_train elements
+        data[files_desc[2]] = data[files_desc[2]][:num_train] # select corresponding num_train elements
+
+    
+    ########################## Write dictionary into file ##########################
+    with open('./data/processed/mnist_numpy', 'wb') as f:
+        pickle.dump(data, f)
+        
+if __name__=='__main__':
+    main(num_train=1000)

@@ -214,6 +214,7 @@ def main(pretrain=False, load=False, train=True):
     # np.random.seed(42) # set random seed for reproducibility
     # Better to pretrain without setting random seed then train, as contrastive divergence
     # relays on gibbs sampling and therefore on unpredictability of sampling
+    # effects appear mainly when generating samples from DBN
     
     
     ############################### Prepare DATA TORCHVISION ###############################
@@ -250,7 +251,7 @@ def main(pretrain=False, load=False, train=True):
      
     # DATA NORMALIZATION SCHEDULE MUST BE SAME BETWEEN TRAINING (VALIDATION) & TEST - cf make_mnist.py
     if train:
-        train_data = data['train_images'].reshape(60_000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+        train_data = data['train_images'].reshape(2000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
         train_labels = data['train_labels']
         
     test_data = data['test_images'].reshape(10_000, -1, 1)
@@ -286,7 +287,7 @@ def main(pretrain=False, load=False, train=True):
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
-            dnn.pretrain_model(test_data, batch_size=100, epochs=100, save=True) # train DBN greedily
+            dnn.pretrain_model(test_data, batch_size=64, epochs=50, save=False) # train DBN greedily
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -316,7 +317,7 @@ def main(pretrain=False, load=False, train=True):
         y_train = train_labels
         
         dnn.train_model(X_train, y_train, batch_size=64, epochs=50, learning_rate=.01)
-        dnn.save_model('./models/dnn_trained_mnist', dnn=True)
+        # dnn.save_model('./models/dnn_trained_mnist', dnn=True)
         
         # Utilize test set to assess accuracy
         acc = accuracy(test_data, test_labels, dnn)
@@ -330,4 +331,4 @@ def main(pretrain=False, load=False, train=True):
     
 
 if __name__ == '__main__':
-    main(pretrain=True, load=False, train=True)
+    main(pretrain=False, load=False, train=True)

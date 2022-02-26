@@ -251,7 +251,7 @@ def main(pretrain=False, load=False, train=True):
      
     # DATA NORMALIZATION SCHEDULE MUST BE SAME BETWEEN TRAINING (VALIDATION) & TEST - cf make_mnist.py
     if train:
-        train_data = data['train_images'].reshape(2000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
+        train_data = data['train_images'].reshape(60000, -1, 1) # reshaping consistent with dbn pretraining - could be worked on to be more "natural"
         train_labels = data['train_labels']
         
     test_data = data['test_images'].reshape(10_000, -1, 1)
@@ -264,8 +264,11 @@ def main(pretrain=False, load=False, train=True):
     
     ###############################  Pretrain DNN  ###############################
     n_v = 784
-    h_1 = 128
-    h_2 = 64
+    h_1 = 32
+    h_2 = 16
+    # h_3 = 128
+    # h_4 = 128
+    # h_5 = 128
     output = 10
     
     if pretrain:
@@ -284,10 +287,12 @@ def main(pretrain=False, load=False, train=True):
                 (h_1, None),
                 (h_2, None),
                 # (h_3, None),
+                # (h_4, None),
+                # (h_5, None),
                 # (output, None), # yields much worse results for those who wondered
             ]
             dnn = DNN(n_v, layers) # initialize DBN
-            dnn.pretrain_model(test_data, batch_size=64, epochs=50, save=False) # train DBN greedily
+            dnn.pretrain_model(train_data, batch_size=64, epochs=50, save=False) # train DBN greedily
             
             # add last layer to make our DNN
             dnn.weights = [rbm.W for rbm in dnn.rbms]
@@ -306,6 +311,8 @@ def main(pretrain=False, load=False, train=True):
                 (h_1, None),
                 (h_2, None),
                 # (h_3, None),
+                # (h_4, None),
+                # (h_5, None),
                 (output, None),
             ]
             dnn = DNN(n_v, layers)

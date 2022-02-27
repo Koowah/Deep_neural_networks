@@ -1,4 +1,5 @@
 DNN
+# FILE TREE NEEDS TIDYING AND CLEANING UP - WILL BE DONE SHORTLY
 ==============================
 
 Building DNN, RBM & DBN from scratch - training & predicting on MNIST & Binary AlphaDigits - pretraining

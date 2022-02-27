@@ -2,6 +2,7 @@ import numpy as np
 import requests
 import pickle
 import gzip
+import os
 
 # import torch
 # from torchvision import datasets, transforms # for MNIST
@@ -67,6 +68,10 @@ def main(download=False, num_train=60_000):
         file_url = ['http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz',
                     'http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz']
         
+        current_dir = os.path.dirname(__file__)
+        target_dir = os.path.join(current_dir, 'data/raw')
+        os.mkdir(target_dir) # create data/raw if doesn't exist
+        
         for i in range(len(file_url)):
             downloaded_data = requests.get(file_url[i])
             with open(files_paths[i], 'wb') as f:
@@ -113,4 +118,4 @@ def main(download=False, num_train=60_000):
         pickle.dump(data, f)
         
 if __name__=='__main__':
-    main(download=False, num_train=60000)
+    main(download=True, num_train=60000)

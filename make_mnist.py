@@ -1,4 +1,5 @@
 import numpy as np
+import requests
 import pickle
 import gzip
 
@@ -31,10 +32,7 @@ import gzip
 ############################### General method ###############################
 ##############################################################################
 
-# add download with requests
-
 ########################## Helper functions ##########################
-
 def normalize(images, center=False, black_and_white=False):
     max = np.max(images)
     min = np.min(images)
@@ -56,23 +54,32 @@ def one_hot(num_labels):
     one_hot_labels = np.array(one_hot_labels)
     return one_hot_labels
 
-
-def main(num_train=60_000):
-    files = ['./data/raw/train-images-idx3-ubyte.gz', './data/raw/t10k-images-idx3-ubyte.gz',
+########################## Main Program ##########################
+def main(download=False, num_train=60_000):
+    files_paths = ['./data/raw/train-images-idx3-ubyte.gz', './data/raw/t10k-images-idx3-ubyte.gz',
             './data/raw/train-labels-idx1-ubyte.gz', './data/raw/t10k-labels-idx1-ubyte.gz']
     files_desc = ['train_images', 'test_images',
                 'train_labels', 'test_labels']
     data = {}
     
-    ########################## Read MNIST data from zip and write as numpy arrays into dictionnary ##########################
+    ########################## Download ##########################
+    if download:
+        file_url = ['http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz',
+                    'http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz']
+        
+        for i in range(len(file_url)):
+            downloaded_data = requests.get(file_url[i])
+            with open(files_paths[i], 'wb') as f:
+                f.write(downloaded_data.content)
     
-    for path, key in zip(files[:2], files_desc[:2]):
+    ########################## Read MNIST data from zip and write as numpy arrays into dictionnary ##########################
+    for path, key in zip(files_paths[:2], files_desc[:2]):
         with gzip.open(path, 'rb') as f:
             data[key] = (np.frombuffer(
                     f.read(), np.uint8, offset=16
                 ).reshape(-1, 28 * 28))
             
-    for path, key in zip(files[2:], files_desc[2:]):
+    for path, key in zip(files_paths[2:], files_desc[2:]):
         with gzip.open(path, 'rb') as f:
             data[key] = np.frombuffer(f.read(), np.uint8, offset=8)
 
@@ -106,4 +113,4 @@ def main(num_train=60_000):
         pickle.dump(data, f)
         
 if __name__=='__main__':
-    main(num_train=1000)
+    main(download=False, num_train=60000)

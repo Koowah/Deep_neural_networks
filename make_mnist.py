@@ -68,9 +68,16 @@ def main(download=False, num_train=60_000):
         file_url = ['http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz',
                     'http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz', 'http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz']
         
+        # make data raw dir
         current_dir = os.path.dirname(__file__)
         target_dir = os.path.join(current_dir, 'data/raw')
         os.mkdir(target_dir) # create data/raw if doesn't exist
+        
+        # make data interim and processed dirs
+        additional_dir = os.path.join(current_dir, 'data/interim')
+        additional_dir_2 = os.path.join(current_dir, 'data/processed')
+        os.mkdir(additional_dir)
+        os.mkdir(additional_dir_2)
         
         for i in range(len(file_url)):
             downloaded_data = requests.get(file_url[i])

@@ -1,8 +1,12 @@
-DNN
-# SRC files are in main folder - FILE TREE NEEDS TIDYING AND CLEANING UP - WILL BE DONE SHORTLY
+# Building DNN, RBM & DBN from scratch - training & predicting on MNIST & Binary AlphaDigits - pretraining
+
+### SRC files are in main folder - FILE TREE NEEDS TIDYING AND CLEANING UP - WILL BE DONE SHORTLY
 ==============================
 
-Building DNN, RBM & DBN from scratch - training & predicting on MNIST & Binary AlphaDigits - pretraining
+School project - will be cleaned-up into modules and given proper documentation as soon as time allows me to.
+
+
+
 
 Project Organization
 ------------
